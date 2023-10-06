@@ -1,0 +1,64 @@
+In SAS:
+VARIABLE IMPORTANCE
+/*determining variable importance*/
+/*import data*/
+proc import 
+out=fraud
+datafile="C:/Users/card_transdata.csv" 
+dbms=csv replace;
+
+/*split data into training and testing sets*/
+/*80-20 split*/
+/*set a seed to be able to replicate results*/
+/*using simple random sampling*/
+proc surveyselect 
+data=fraud
+rate=0.8 
+seed=702754
+out=fraud
+outall method=srs; 
+run;
+
+/*random forest binary classifier*/
+/*specify the target and target data type*/
+/*specify inputs and input data type*/
+proc hpforest 
+data=fraud
+seed=501839
+maxtrees=60 
+vars_to_try=4 
+trainfraction=0.7
+maxdepth=10;
+target fraud/level=binary;
+input repeat_retailer 
+used_chip 
+used_pin_number 
+online_order/level=binary;
+input distance_from_home 
+distance_from_last_transaction
+ratio_to_median_purchase_price/level=interval;
+partition rolevar=selected(train='1');
+save file='C:/Users/Math User/Desktop/random_forest.bin';
+run;
+
+/*prediction with testing data*/
+data test;
+set fraud;
+if(selected='0');
+run;
+proc hp4score data=test;
+id fraud;
+score file='C:/Users/Math User/Desktop/random_forest.bin'
+out=predicted;
+run;
+
+/*prediction accuracy*/
+data predicted;
+set predicted;
+match=(fraud=lowcase(I_fraud));
+run;
+proc sql;
+select sum(match)/count(*) as accuracy
+from predicted;
+quit;
+
