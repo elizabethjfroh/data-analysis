@@ -1,0 +1,47 @@
+#r
+#random forest binary classifier
+#libraries/dependencies
+library(randomForest)
+
+#data
+a=read.csv(file="C:/Users/card_transdata.csv", 
+           header=TRUE, 
+           sep=",")
+
+#split
+#80-20 split
+set.seed(9872)
+sample =sample(c(TRUE, FALSE), 
+               nrow(a), 
+               replace=TRUE, 
+               prob=c(0.8,0.2))
+train=a[sample,]
+test=a[!sample,]
+
+#binary random forest classifier
+#unlike sas, r does not need the variable data type to be specified
+rf=randomForest(as.factor(fraud) ~ distance_from_home 
+                      + distance_from_last_transaction
+                      + ratio_to_median_purchase_price 
+                      + repeat_retailer 
+                      + used_chip 
+                      + used_pin_number 
+                      + online_order,
+                        data=train, 
+                        ntree=150, 
+                        mtry=4, 
+                        maxnodes=30)
+
+#variable importance
+print(importance(rf,type=2))
+
+#prediction accuracy
+prediction=predict(rf, 
+newdata=test)
+test=cbind(test, 
+prediction)
+accuracy=c()
+n=nrow(test)
+for (i in 1:n)
+  	accuracy[i]=ifelse(test$fraud[i]==test$prediction[i],1,0)
+print(accuracy<- sum(accuracy)/length(accuracy))
